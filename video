@@ -1,0 +1,197 @@
+import React, { useEffect, useRef, useState } from 'react';
+import videojs from 'video.js';
+import 'video.js/dist/video-js.css';
+import sampleVideo from './assets/856925-hd_1920_1080_25fps.mp4';
+
+const Page2 = ({ videoSrc }) => {
+  const videoRef = useRef(null);
+  const playerRef = useRef(null);
+  const [captionsVisible, setCaptionsVisible] = useState(true);
+
+  useEffect(() => {
+    // Ensure video.js initializes after the video element is in the DOM
+    const timeout = setTimeout(() => {
+      if (videoRef.current && !playerRef.current) {
+        playerRef.current = videojs(videoRef.current, {
+          controls: true,
+          autoplay: false,
+          preload: 'auto',
+          controlBar: {
+            children: [
+              'playToggle',
+              'skipBackward',
+              'skipForward',
+              'volumePanel',
+              'currentTimeDisplay',
+              'timeDivider',
+              'progressControl',
+              'durationDisplay',
+              'remainingTimeDisplay',
+              'playbackRateMenuButton',
+              'chaptersButton',
+              'subtitlesButton',
+              // 'captionsButton',
+              'descriptionsButton',
+              'audioTrackButton',
+              'pictureInPictureToggle', // <-- Add PiP button
+              'fullscreenToggle'
+            ],
+            skipButtons: {
+              forward: 10,
+              backward: 10,
+            },
+          },
+        });
+      }
+    }, 0);
+
+    // Keyboard arrow support for rewind/fast-forward, spacebar for pause/play, 'f' for fullscreen toggle, up/down for volume
+    const handleKeyDown = (e) => {
+      if (!videoRef.current) return;
+      if (document.activeElement !== videoRef.current && document.activeElement.tagName !== "BODY") return;
+      if (e.key === "ArrowLeft") {
+        videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+        e.preventDefault();
+      } else if (e.key === "ArrowRight") {
+        videoRef.current.currentTime = Math.min(
+          videoRef.current.duration || Infinity,
+          videoRef.current.currentTime + 10
+        );
+        e.preventDefault();
+      } else if (e.key === "ArrowUp") {
+        // Increase volume by 10%
+        videoRef.current.volume = Math.min(1, (videoRef.current.volume || 0) + 0.1);
+        e.preventDefault();
+      } else if (e.key === "ArrowDown") {
+        // Decrease volume by 10%
+        videoRef.current.volume = Math.max(0, (videoRef.current.volume || 0) - 0.1);
+        e.preventDefault();
+      } else if (e.key === " " || e.key === "Spacebar") {
+        // Spacebar toggles play/pause
+        if (videoRef.current.paused) {
+          videoRef.current.play();
+        } else {
+          videoRef.current.pause();
+        }
+        e.preventDefault();
+      } else if (e.key === "f" || e.key === "F") {
+        // 'f' toggles fullscreen
+        const videoContainer = videoRef.current.parentElement;
+        if (
+          document.fullscreenElement === videoContainer ||
+          document.webkitFullscreenElement === videoContainer ||
+          document.mozFullScreenElement === videoContainer ||
+          document.msFullscreenElement === videoContainer
+        ) {
+          if (document.exitFullscreen) document.exitFullscreen();
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+          else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+          else if (document.msExitFullscreen) document.msExitFullscreen();
+        } else {
+          if (videoContainer.requestFullscreen) videoContainer.requestFullscreen();
+          else if (videoContainer.webkitRequestFullscreen) videoContainer.webkitRequestFullscreen();
+          else if (videoContainer.mozRequestFullScreen) videoContainer.mozRequestFullScreen();
+          else if (videoContainer.msRequestFullscreen) videoContainer.msRequestFullscreen();
+        }
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("keydown", handleKeyDown);
+      if (playerRef.current) {
+        playerRef.current.dispose();
+        playerRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      data-vjs-player
+      style={{
+        width: "500px",           
+        maxWidth: "50px",
+        minWidth: "50px",
+        margin: "40px auto 0 auto",
+        // aspectRatio: "16/9",
+        background: "#000",
+        minHeight: 320,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}
+    >
+      <video
+        ref={videoRef}
+        className="video-js vjs-default-skin"
+        style={{
+          width: "100%",
+          height: "100%",
+          minHeight: 320,
+          background: "#000",
+          display: "block",
+          borderRadius: 12,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.18)"
+        }}
+        controls
+        controlsList="nodownload"
+        onContextMenu={(e) => e.preventDefault()}
+        poster="/thumbnail.jpg"
+      >
+        <source src={videoSrc || sampleVideo} type="video/mp4" />
+        <track
+          kind="subtitles"
+          srcLang="en"
+          label="English"
+          src="/assets/sample-captions.vtt"
+          default
+        />
+        Your browser does not support the video tag.
+      </video>
+   <style>{`
+  .vjs-default-skin .vjs-control-bar {
+    border-radius: 0 0 12px 12px;
+    background: rgba(20, 20, 20, 0.92);
+    font-size: 1.1em;
+    min-height: 38px;
+    transition: min-height 0.2s;
+  }
+  .vjs-default-skin.vjs-fullscreen .vjs-control-bar {
+    min-height: 60px;
+    font-size: 1.35em;
+  }
+  .vjs-default-skin .vjs-control {
+    color: #fff !important;
+    transition: background 0.2s;
+  }
+  .vjs-default-skin .vjs-control:hover {
+    background: rgba(255,255,255,0.08) !important;
+  }
+  .vjs-default-skin .vjs-play-control,
+  .vjs-default-skin .vjs-skip-forward,
+  .vjs-default-skin .vjs-skip-backward {
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3a8dde 0%, #005fa3 100%);
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    margin: 0 2px;
+  }
+  .vjs-default-skin .vjs-play-control:hover,
+  .vjs-default-skin .vjs-skip-forward:hover,
+  .vjs-default-skin .vjs-skip-backward:hover {
+    background: linear-gradient(135deg, #005fa3 0%, #3a8dde 100%);
+  }
+  /* Show subtitles button, hide captions button */
+  .vjs-captions-button {
+    display: none !important;
+  }
+`}</style>
+
+    </div>
+  );
+};
+
+export default Page2;
